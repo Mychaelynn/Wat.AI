@@ -39,6 +39,10 @@ duckID1 = p.createMultiBody(
     basePosition=[4, 1, 1],
     baseOrientation=startOrientation,
 )
+# Used to find out what are steering and wheel joints
+# numJoints = p.getNumJoints(carID)
+# for joint in range(numJoints):
+#     print(p.getJointInfo(carID, joint)[1])
 
 #put steering wheel joint nubmers and wheels into array to use for driving later 
 steeringJoints = [4, 6]
@@ -47,7 +51,7 @@ wheels = [2, 3, 5, 7]
 # initial Variables
 targetVelocity = 0.0
 steeringAngle = 0.0
-dt = 1.0 / 240.0
+timeInterval = 1.0 / 240.0
 trajectory = []
 collisionCheck = [duckID1]
 turnCounter=0
@@ -107,12 +111,8 @@ makeWall(-3, 0, 0.1, 3, 0.5)
 # for i in collisionCheck:
 #     print(i)
 
+#used to keep track of collisions
 hitStates = {t: {"lastHit": False, "totalT": 0.0} for t in collisionCheck}
-
-# Used to find out what are steering and wheel joints
-# numJoints = p.getNumJoints(carID)
-# for joint in range(numJoints):
-#     print(p.getJointInfo(carID, joint)[1])
 
 
 # directions to drive
@@ -140,14 +140,14 @@ def getCarState():
 
 
 def checkContact(carID, collisionObjects, hitStates):
-    num_links = p.getNumJoints(carID)
+    numLinks = p.getNumJoints(carID)
     
     #go through all possible collision objects
     for collisionObject in collisionObjects:
         contactFound = False
         
-        #Go through all links in an object, inlcude -1 for base link
-        for link in range(-1, num_links):
+        #Go through all links in the car, inlcude -1 for base link
+        for link in range(-1, numLinks):
             contacts = p.getContactPoints(bodyA=carID, linkIndexA=link, bodyB=collisionObject)
             if contacts:
                 contactFound = True
@@ -157,8 +157,8 @@ def checkContact(carID, collisionObjects, hitStates):
         
         if contactFound:
             state["lastHit"] = True
-            state["totalT"] += dt
-            if state["totalT"] == dt: 
+            state["totalT"] += timeInterval
+            if state["totalT"] == timeInterval: 
                 print(f"COLLISION START with object {collisionObject}")
         else:
             if state["lastHit"]:
@@ -168,15 +168,15 @@ def checkContact(carID, collisionObjects, hitStates):
 
 def printBeforeExecute(command, position, heading):
     global turnCounter
-    print(f"🦆 {turnCounter}. Executing: {command}...")
-    print(f"→ Inital Position: ({position[0]:.2f}, {position[1]:.2f}), Heading: {math.degrees(heading):.1f}°")
-    print("-----------------------------")
+    print(f"🦆 {turnCounter}. Executing: {command} !!")
+    print(f"--> Inital Position: ({position[0]:.2f}, {position[1]:.2f}), Heading: {math.degrees(heading):.1f}°")
+    print("---------------------------------------------")
     turnCounter+=1
 
 def printAfterExecute(command, position, heading):
     print(f"Completed: {command}")
-    print(f"→ Final Position: ({position[0]:.2f}, {position[1]:.2f}), Heading: {math.degrees(heading):.1f}°")
-    print("-----------------------------")
+    print(f"--> Final Position: ({position[0]:.2f}, {position[1]:.2f}), Heading: {math.degrees(heading):.1f}°")
+    print("---------------------------------------------")
 
 
 for command in commands:
@@ -193,7 +193,7 @@ for command in commands:
             targetVelocity = -10 
         
         movingTime = distance/abs(targetVelocity)
-        steps = int(movingTime / dt)
+        steps = int(movingTime / timeInterval)
         
         for j in range(steps):
             setDrive(targetVelocity, steeringAngle)
@@ -201,7 +201,7 @@ for command in commands:
             position, heading = getCarState()
             trajectory.append((position[0], position[1]))
             checkContact(carID, collisionCheck, hitStates)
-            time.sleep(dt)
+            time.sleep(timeInterval)
 
     elif action in ["left", "right"]:
         degrees = float(currCommand[1])
@@ -215,7 +215,7 @@ for command in commands:
             setDrive(0, steeringAngle)
             p.stepSimulation()
             checkContact(carID, collisionCheck, hitStates)
-            time.sleep(dt)
+            time.sleep(timeInterval)
 
     elif action == "brake":
         targetVelocity = 0.0
@@ -223,7 +223,7 @@ for command in commands:
             setDrive(0, steeringAngle)
             p.stepSimulation()
             checkContact(carID, collisionCheck, hitStates)
-            time.sleep(dt)
+            time.sleep(timeInterval)
             
         
     elif action == "straighten":
@@ -233,11 +233,11 @@ for command in commands:
             setDrive(0, steeringAngle)
             p.stepSimulation()
             checkContact(carID, collisionCheck, hitStates)
-            time.sleep(dt)
+            time.sleep(timeInterval)
 
     elif action == "stop":
         position, heading = getCarState()
-        print("Stopping simulation.")
+        print("Stopping Simulation.")
         break
         
     printAfterExecute(command, position, heading)
